@@ -3,31 +3,26 @@ const http = require("http");
 const socketIo = require("socket.io");
 const cors = require("cors");
 
-// Initialisation de l'application Express et du serveur HTTP
 const app = express();
 const server = http.createServer(app);
 
-// Initialisation de Socket.io avec configuration CORS
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:3000", // URL de votre frontend
+    origin: "http://localhost:3000",
     methods: ["GET", "POST"],
   },
 });
 
-// Configuration de CORS pour permettre les requêtes de votre frontend
 app.use(
   cors({
-    origin: "http://localhost:3000", // L'URL de votre frontend, ajustez-le selon vos besoins
+    origin: "http://localhost:3000",
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type"],
   })
 );
 
-// Middleware pour analyser les requêtes JSON
 app.use(express.json());
 
-// Exemple de données de commandes (stockées en mémoire pour l'exemple)
 let commandes = [
   {
     id: 1,
@@ -112,38 +107,32 @@ let commandes = [
   },
 ];
 
-// Route GET pour récupérer toutes les commandes
 app.get("/api/commandes", (req, res) => {
   res.json(commandes);
 });
 
-// Route GET pour récupérer les commandes par état
 app.get("/api/commandes/etat/:etat", (req, res) => {
-  const etat = req.params.etat.toLowerCase(); // Récupérer l'état de la commande depuis l'URL
+  const etat = req.params.etat.toLowerCase();
 
-  // Filtrer les commandes par l'état
   const commandesFiltrees = commandes.filter(
     (commande) => commande.Etat.toLowerCase() === etat
   );
 
-  // Si aucune commande n'est trouvée pour cet état, retourner un message approprié
   if (commandesFiltrees.length === 0) {
     return res
       .status(404)
       .json({ message: `Aucune commande trouvée pour l'état "${etat}"` });
   }
 
-  // Retourner les commandes filtrées
   res.json(commandesFiltrees);
 });
 
-// Route POST pour ajouter une nouvelle commande
 app.post("/api/commandes", (req, res) => {
   console.log(commandes);
-  const newCommande = req.body; // Données de la nouvelle commande envoyées par le frontend
-  newCommande.id = commandes.length + 1; // Générer un nouvel ID pour la commande
-  commandes.push(newCommande); // Ajouter la commande à la liste
-  res.status(201).json(newCommande); // Retourner la commande ajoutée
+  const newCommande = req.body;
+  newCommande.id = commandes.length + 1;
+  commandes.push(newCommande);
+  res.status(201).json(newCommande);
 });
 
 app.put("/api/commandes/:id/notify", (req, res) => {
@@ -154,20 +143,16 @@ app.put("/api/commandes/:id/notify", (req, res) => {
     return res.status(404).json({ message: "Commande non trouvée" });
   }
 
-  // Mettre à jour l'état de la commande en 'notifiée'
   commande.Etat = "notifiée";
 
-  // Envoyer l'événement Socket.io pour notifier tous les clients
   io.emit("commandesChanged", commandes);
 
   res.status(200).json(commande);
 });
 
-// Route PUT pour mettre à jour une commande existante
-// Route POST pour mettre à jour une commande par ID avec un nouvel état
 app.post("/api/commandes/:id", (req, res) => {
-  const id = parseInt(req.params.id); // Récupérer l'ID depuis l'URL
-  const { Etat } = req.body; // Récupérer l'état depuis le corps de la requête
+  const id = parseInt(req.params.id);
+  const { Etat } = req.body;
 
   const commande = commandes.find((c) => c.id === id);
 
@@ -175,13 +160,11 @@ app.post("/api/commandes/:id", (req, res) => {
     return res.status(404).json({ message: "Commande non trouvée" });
   }
 
-  // Mettre à jour l'état de la commande
   commande.Etat = Etat;
 
-  res.status(200).json(commande); // Retourner la commande mise à jour
+  res.status(200).json(commande);
 });
 
-// Route pour imprimer une commande
 app.get("/api/commandes/:id/print", (req, res) => {
   const id = parseInt(req.params.id);
   const commande = commandes.find((c) => c.id === id);
@@ -204,11 +187,10 @@ app.get("/api/commandes/:id/print", (req, res) => {
   res.json({ message: "Commande imprimée avec succès", printContent });
 });
 
-// Route pour importer des commandes
 app.post("/api/commandes/import", (req, res) => {
-  console.log("Requête reçue sur /api/commandes/import"); // Ajoutez ce log pour vérifier
-  const commandesImportees = req.body; // Les données envoyées
-  console.log("Commandes importées :", commandesImportees); // Vérifiez les données dans la console
+  console.log("Requête reçue sur /api/commandes/import");
+  const commandesImportees = req.body;
+  console.log("Commandes importées :", commandesImportees);
 
   if (!Array.isArray(commandesImportees)) {
     return res
@@ -217,14 +199,13 @@ app.post("/api/commandes/import", (req, res) => {
   }
 
   commandesImportees.forEach((commande) => {
-    commande.id = commandes.length + 1; // Ajoutez un ID unique
-    commandes.push(commande); // Ajoutez à la liste des commandes
+    commande.id = commandes.length + 1;
+    commandes.push(commande);
   });
 
   res.status(201).json({ message: "Importation réussie", commandes });
 });
 
-// Route DELETE pour supprimer une commande
 app.delete("/api/commandes/:id", (req, res) => {
   const id = parseInt(req.params.id);
   const commandeIndex = commandes.findIndex((c) => c.id === id);
@@ -233,19 +214,16 @@ app.delete("/api/commandes/:id", (req, res) => {
     return res.status(404).json({ message: "Commande non trouvée" });
   }
 
-  // Supprimer la commande
   commandes.splice(commandeIndex, 1);
   res.status(204).end();
 });
 
-// Connexion à Socket.io pour permettre la communication en temps réel
 io.on("connection", (socket) => {
   console.log("Nouvelle connexion avec un client");
 
-  // Exemple de communication en temps réel (notifier tous les clients lorsque la liste des commandes change)
   socket.on("ajouterCommande", (newCommande) => {
     commandes.push(newCommande);
-    io.emit("commandesChanged", commandes); // Envoyer la mise à jour des commandes à tous les clients connectés
+    io.emit("commandesChanged", commandes);
   });
 
   // Déconnexion

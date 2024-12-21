@@ -1,11 +1,11 @@
-// src/app/page.tsx
 import React from 'react';
 
 const HomePage: React.FC = () => {
   return (
-    <div>
-      <h1>Welcome to the Home Page</h1>
-      <p>This is the main page of the application.</p>
+    <div className="flex justify-center items-center min-h-screen bg-gray-100">
+      <h1 className="text-blue-500 font-bold text-center text-3xl">
+        Bienvenue à la page d'accueil
+      </h1>
     </div>
   );
 };
